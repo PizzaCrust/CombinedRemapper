@@ -103,16 +103,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-utils</artifactId>
-            <version>3.0.5</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-digest</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
             <groupId>net.techcable</groupId>
             <artifactId>srglib</artifactId>
             <version>0.1.1</version>
