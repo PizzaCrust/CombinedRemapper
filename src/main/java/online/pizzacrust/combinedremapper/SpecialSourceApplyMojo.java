@@ -1,6 +1,7 @@
 package online.pizzacrust.combinedremapper;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import net.techcable.srglib.format.MappingsFormat;
 import net.techcable.srglib.mappings.Mappings;
@@ -18,8 +19,11 @@ import org.apache.maven.project.MavenProject;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
@@ -58,6 +62,23 @@ public class SpecialSourceApplyMojo extends AbstractMojo {
         return files;
     }
 
+    private Mappings parsePackages(File file) {
+        try {
+            List<String> lines = Files.readAllLines(file.toPath());
+            Map<String, String> packageMappings = new HashMap<>();
+            lines.forEach((line) -> {
+                if (line.startsWith("PK")) {
+                    String[] splitted = line.split(" ");
+                    packageMappings.put(splitted[1], splitted[2]);
+                }
+            });
+            return Mappings.createPackageMappings(ImmutableMap.copyOf(packageMappings));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private Mappings getMappings(File file) {
         try {
             return MappingsFormat.SEARGE_FORMAT.parseFile(file);
@@ -73,6 +94,10 @@ public class SpecialSourceApplyMojo extends AbstractMojo {
             Mappings possibleMappings = getMappings(srgFile);
             if (possibleMappings != null) {
                 mappings.add(possibleMappings);
+            }
+            Mappings packageMappings = parsePackages(srgFile);
+            if (packageMappings != null) {
+                mappings.add(packageMappings);
             }
         }
         return mappings;
