@@ -31,7 +31,7 @@ import static org.twdata.maven.mojoexecutor.MojoExecutor.name;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.version;
 
-@Mojo(name = "applySpecialSource", defaultPhase = LifecyclePhase.PACKAGE)
+@Mojo(name = "applyss", defaultPhase = LifecyclePhase.PACKAGE)
 public class SpecialSourceApplyMojo extends AbstractMojo {
 
     @Component
