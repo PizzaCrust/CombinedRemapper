@@ -20,10 +20,13 @@ import org.apache.maven.project.MavenProject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javafx.util.Pair;
 
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
@@ -62,17 +65,30 @@ public class SpecialSourceApplyMojo extends AbstractMojo {
         return files;
     }
 
-    private Mappings parsePackages(File file) {
+    static class PackageMappings {
+        public final String newName;
+        public final String oldName;
+        public PackageMappings(String oldName, String newName) {
+            this.newName = newName;
+            this.oldName = oldName;
+        }
+        @Override
+        public String toString() {
+            return "PK: " + oldName + " " + newName;
+        }
+    }
+
+    private List<PackageMappings> parsePackages(File file) {
         try {
             List<String> lines = Files.readAllLines(file.toPath());
-            Map<String, String> packageMappings = new HashMap<>();
+            List<PackageMappings> pkMappings = new ArrayList<>();
             lines.forEach((line) -> {
                 if (line.startsWith("PK")) {
                     String[] splitted = line.split(" ");
-                    packageMappings.put(splitted[1], splitted[2]);
+                    pkMappings.add(new PackageMappings(splitted[1], splitted[2]));
                 }
             });
-            return Mappings.createPackageMappings(ImmutableMap.copyOf(packageMappings));
+            return pkMappings;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -88,23 +104,24 @@ public class SpecialSourceApplyMojo extends AbstractMojo {
         return null;
     }
 
-    private List<Mappings> getValidMappings(List<File> files) {
+    private Pair<List<Mappings>, List<PackageMappings>> getValidMappings(List<File> files) {
         List<Mappings> mappings = new ArrayList<Mappings>();
+        List<PackageMappings> pkMappings = new ArrayList<>();
         for (File srgFile : files) {
             Mappings possibleMappings = getMappings(srgFile);
             if (possibleMappings != null) {
                 mappings.add(possibleMappings);
             }
-            Mappings packageMappings = parsePackages(srgFile);
-            if (packageMappings != null) {
-                mappings.add(packageMappings);
+            List<PackageMappings> pkMapping = parsePackages(srgFile);
+            if (pkMapping != null) {
+                pkMappings.addAll(pkMapping);
             }
         }
-        return mappings;
+        return new Pair<>(mappings, pkMappings);
     }
 
     private Mappings getCombinedMappings() {
-        return Mappings.chain(ImmutableList.copyOf(getValidMappings(getValidSrgs())));
+        return Mappings.chain(ImmutableList.copyOf(getValidMappings(getValidSrgs()).getKey()));
     }
 
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -114,6 +131,13 @@ public class SpecialSourceApplyMojo extends AbstractMojo {
         } catch (IOException e) {
             e.printStackTrace();
             throw new MojoFailureException(e.getMessage());
+        }
+        List<String> newLines = new ArrayList<>();
+        getValidMappings(getValidSrgs()).getValue().forEach((pkMapping) -> newLines.add(pkMapping.toString()));
+        try {
+            Files.write(mergedFile.toPath(), newLines, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         executeMojo(plugin(
                 groupId("net.md-5"),
